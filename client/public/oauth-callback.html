@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Google OAuth Callback</title>
+  </head>
+  <body>
+    <script src="/env.js"></script>
+    <script>
+       const API_URL = window.ENV.BACKEND_API;
+      const params = new URLSearchParams(window.location.search);
+      const code = params.get("code");
+
+      if (code) {
+        fetch(`${API_URL}/api/auth/google-callback`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ code }),
+        })
+          .then((res) => res.json())
+          .then((data) => {
+
+            if (!data.success) {
+              alert("Google login failed!");
+              window.location.href = "/";
+              return;
+            }
+       
+          
+
+            // Save token
+            localStorage.setItem("token", data.jwt);
+            localStorage.setItem("user", JSON.stringify(data.user)); // ✅ Add this line
+
+            // Save minimal user info (for onboarding)
+            sessionStorage.setItem(
+  "tempUserData",
+  JSON.stringify({
+    email: data.user.email,
+    googleId: data.user.googleId,
+    name: data.user.name || "",
+    avatar: data.user.avatar || "",
+  })
+);
+localStorage.setItem("userRole", data.user.role);
+            //Check if onboarding is needed
+            if (!data.user.profileCompleted) {
+              window.location.href = "/onboard";
+            } else {
+              window.location.href = "/dashboard";
+
+            }
+ 
+          })
+          .catch((err) => {
+            console.error("OAuth failed:", err);
+            alert("Google Sign-in Failed");
+            window.location.href = "/";
+          });
+      } else {
+        alert("No auth code found in URL");
+        window.location.href = "/";
+      }
+    </script>
+  </body>
+</html>
